@@ -13,10 +13,6 @@
       "source": "./usage-weather"
     },
     {
-      "name": "venv-guard",
-      "source": "./venv-guard"
-    },
-    {
       "name": "prompt-git",
       "source": "./prompt-git"
     },

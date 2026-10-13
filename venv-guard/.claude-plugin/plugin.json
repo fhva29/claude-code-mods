@@ -1,1 +1,0 @@
-{ "name": "venv-guard", "version": "0.2.0", "description": "Rewrites Bash calls to use BackEnd/venv/bin explicitly instead of source activate.", "types": "./types/index.d.ts" }
