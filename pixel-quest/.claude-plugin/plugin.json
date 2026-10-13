@@ -1,0 +1,1 @@
+{ "name": "pixel-quest", "version": "0.1.0", "description": "Replaces the spinner with a pixel RPG scene for each tool, with XP, levels and achievements. No model calls.", "types": "./types/index.d.ts" }

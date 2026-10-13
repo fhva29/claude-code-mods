@@ -1,0 +1,1 @@
+{ "name": "usage-weather", "version": "0.1.0", "description": "A forecast band above the prompt: context fill, sparkline, rate limits, model and effort.", "types": "./types/index.d.ts" }

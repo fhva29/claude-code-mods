@@ -1,0 +1,80 @@
+{
+  "name": "model-stack",
+  "version": "0.9.0",
+  "description": "Routes the model and effort of the main chat turn and of each subagent with TypeSafe's Jev, and shows the roster, decisions and agent graph in a pane.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "minUpgradeConfidence": {
+      "type": "number",
+      "title": "Upgrade confidence",
+      "description": "Minimum probability of Jev's choice to move to a dearer tier than the one requested or running.",
+      "default": 0.3
+    },
+    "minDowngradeConfidence": {
+      "type": "number",
+      "title": "Downgrade confidence",
+      "description": "Minimum probability of Jev's choice to move to a cheaper tier; below it the model stays as picked or requested.",
+      "default": 0.6
+    },
+    "riskyThreshold": {
+      "type": "number",
+      "title": "Risky threshold",
+      "description": "Probability of the task being risky (production, money, credentials, migrations, irreversible state) at which it runs on the max tier regardless of confidence.",
+      "default": 0.7
+    },
+    "mainRouting": {
+      "type": "string",
+      "title": "Main chat routing",
+      "description": "model rewrites the main chat's model and effort; effort keeps your /model and changes only the effort, so the prompt cache is not invalidated.",
+      "options": [
+        "model",
+        "effort"
+      ],
+      "default": "model"
+    },
+    "timeoutMs": {
+      "type": "number",
+      "title": "Jev timeout (ms)",
+      "description": "How long to wait for Jev before keeping the model (main) or the default tier (subagents).",
+      "default": 2000
+    },
+    "defaultTier": {
+      "type": "string",
+      "title": "Default tier",
+      "description": "Tier used for a subagent when Jev is in doubt or unavailable and Opus asked for no model.",
+      "options": [
+        "light",
+        "default",
+        "deep",
+        "heavy",
+        "max"
+      ],
+      "default": "default"
+    },
+    "mode": {
+      "type": "string",
+      "title": "Routing mode",
+      "description": "route applies Jev's choice to the main chat and to eligible subagents; recommend only shows it; off disables it. /stack mode overrides it for the session.",
+      "options": [
+        "route",
+        "recommend",
+        "off"
+      ],
+      "default": "route"
+    },
+    "mainFloor": {
+      "type": "string",
+      "title": "Main chat floor",
+      "description": "Lowest tier Jev may put the main chat on when it is confident; none lets it go down to light. Doubt and fallback still keep the model you picked.",
+      "options": [
+        "none",
+        "light",
+        "default",
+        "deep",
+        "heavy",
+        "max"
+      ],
+      "default": "deep"
+    }
+  }
+}

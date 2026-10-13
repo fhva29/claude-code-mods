@@ -1,0 +1,48 @@
+{
+  "name": "heitor-mods",
+  "owner": {
+    "name": "Heitor V"
+  },
+  "plugins": [
+    {
+      "name": "commit-gate",
+      "source": "./commit-gate"
+    },
+    {
+      "name": "usage-weather",
+      "source": "./usage-weather"
+    },
+    {
+      "name": "venv-guard",
+      "source": "./venv-guard"
+    },
+    {
+      "name": "prompt-git",
+      "source": "./prompt-git"
+    },
+    {
+      "name": "model-stack",
+      "source": "./model-stack"
+    },
+    {
+      "name": "pixel-quest",
+      "source": "./pixel-quest"
+    },
+    {
+      "name": "tidy-tools",
+      "source": "./tidy-tools"
+    },
+    {
+      "name": "replay-theater",
+      "source": "./replay-theater"
+    },
+    {
+      "name": "blast-radius",
+      "source": "./blast-radius"
+    },
+    {
+      "name": "next-lite",
+      "source": "./next-lite"
+    }
+  ]
+}

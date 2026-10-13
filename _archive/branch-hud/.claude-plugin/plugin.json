@@ -1,0 +1,1 @@
+{ "name": "branch-hud", "version": "0.1.0", "description": "A live branch pane and status entry: ahead/behind, dirty files, migrations added on the branch.", "types": "./types/index.d.ts" }

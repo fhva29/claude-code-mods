@@ -1,0 +1,9 @@
+{
+  "name": "tidy-tools",
+  "version": "0.2.0",
+  "description": "Draws each tool call as one compact line, or folds a turn into one 'N steps this turn' line; /lines cycles lines, turn, off.",
+  "author": {
+    "name": "Heitor V"
+  },
+  "types": "./types/index.d.ts"
+}

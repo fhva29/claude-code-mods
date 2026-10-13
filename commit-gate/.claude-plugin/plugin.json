@@ -1,0 +1,1 @@
+{ "name": "commit-gate", "version": "0.1.0", "description": "Holds git commit in a pane listing staged files, flags files not edited this session and blocks AI attribution trailers.", "types": "./types/index.d.ts" }

@@ -1,0 +1,1 @@
+{ "name": "prompt-git", "version": "0.1.0", "description": "Appends the git branch and working-tree counts to the hint line under the prompt.", "types": "./types/index.d.ts" }

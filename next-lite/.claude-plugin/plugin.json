@@ -1,0 +1,33 @@
+{
+  "name": "next-lite",
+  "version": "0.1.0",
+  "description": "Suggests up to three next prompts above the input from a small digest of the turn on a cheap model, instead of forking the whole session.",
+  "author": { "name": "Heitor V" },
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Mode",
+      "description": "auto suggests after each qualifying turn; manual only when you run /next.",
+      "options": ["auto", "manual"],
+      "default": "auto"
+    },
+    "model": {
+      "type": "string",
+      "title": "Model",
+      "description": "Model alias or id that writes the suggestions.",
+      "default": "sonnet"
+    },
+    "minAnswerChars": {
+      "type": "number",
+      "title": "Shortest answer to suggest after",
+      "description": "In auto mode, skip turns whose answer is shorter than this many characters.",
+      "default": 200
+    },
+    "suggestSkills": {
+      "type": "boolean",
+      "title": "Suggest skills and slash commands",
+      "description": "Send the names (not descriptions) of this session's skills and commands, so a suggestion can be one of them.",
+      "default": true
+    }
+  }
+}
