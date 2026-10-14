@@ -1,0 +1,1 @@
+{ "name": "brief-mode", "version": "0.1.0", "description": "Appends a short-answer style section to the system prompt: action first, numbered steps, capped lists, no preamble or closers." }

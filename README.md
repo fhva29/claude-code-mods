@@ -26,7 +26,7 @@ claude plugin install next-lite@heitor-mods
 claude plugin install tidy-tools@heitor-mods
 # ...or all of them:
 for m in blast-radius commit-gate model-stack next-lite pixel-quest prompt-git \
-         replay-theater tidy-tools usage-weather; do
+         replay-theater tidy-tools usage-weather brief-mode; do
   claude plugin install "$m@heitor-mods"
 done
 ```
@@ -48,6 +48,7 @@ Options (`userConfig`) are set in `/plugin` → pick the mod → configure, then
 | [`usage-weather`](usage-weather) | A forecast band above the prompt: context fill, sparkline, rate limits, model and effort. | |
 | [`prompt-git`](prompt-git) | Appends the git branch and working-tree counts to the hint line under the prompt. | |
 | [`pixel-quest`](pixel-quest) | Replaces the spinner with a pixel RPG scene for each tool, with XP, levels and achievements. No model calls. | `/toons` |
+| [`brief-mode`](brief-mode) | Appends a short-answer style section to the system prompt: answer or next action first, numbered steps, lists capped at five, no preamble, recap or closers. Edit `hooks/rules.ts` to tune it. | |
 
 [`_archive`](_archive) holds mods that are kept but not in use (`branch-hud`); they are not listed in the marketplace.
 

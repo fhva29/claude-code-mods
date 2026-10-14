@@ -43,6 +43,10 @@
     {
       "name": "next-lite",
       "source": "./next-lite"
+    },
+    {
+      "name": "brief-mode",
+      "source": "./brief-mode"
     }
   ]
 }
