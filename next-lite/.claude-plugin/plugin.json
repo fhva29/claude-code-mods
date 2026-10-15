@@ -2,14 +2,29 @@
   "name": "next-lite",
   "version": "0.1.0",
   "description": "Suggests up to three next prompts above the input from a small digest of the turn on a cheap model, instead of forking the whole session.",
-  "author": { "name": "Heitor V" },
+  "author": {
+    "name": "Heitor V"
+  },
   "userConfig": {
     "mode": {
       "type": "string",
       "title": "Mode",
       "description": "auto suggests after each qualifying turn; manual only when you run /next.",
-      "options": ["auto", "manual"],
+      "options": [
+        "auto",
+        "manual"
+      ],
       "default": "auto"
+    },
+    "layout": {
+      "type": "string",
+      "title": "Layout",
+      "description": "row shows the suggestions side by side; column stacks them one under another.",
+      "options": [
+        "row",
+        "column"
+      ],
+      "default": "row"
     },
     "model": {
       "type": "string",

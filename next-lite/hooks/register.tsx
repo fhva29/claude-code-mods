@@ -24,7 +24,7 @@ import {
 
 type View = { kind: 'hidden' } | { kind: 'loading'; token: number } | { kind: 'offer'; items: Suggestion[] }
 
-type Settings = { model: string; suggestsSkills: boolean }
+type Settings = { model: string; suggestsSkills: boolean; sideBySide: boolean }
 
 const TIMEOUT_MS = 15_000
 const MAX_REPLY_TOKENS = 400
@@ -73,6 +73,7 @@ export const register: Register = (on, options) => {
   const settings: Settings = {
     model: typeof options?.model === 'string' && options.model !== '' ? options.model : 'sonnet',
     suggestsSkills: options?.suggestSkills !== false,
+    sideBySide: options?.layout !== 'column',
   }
 
   on('session.start', async ($, e, next) => {
@@ -132,9 +133,15 @@ export const register: Register = (on, options) => {
         {below}
         <Box marginTop={1} />
         <Text dimColor>next:</Text>
-        {view.items.map((item, index) => (
-          <Box key={`s${index}`} marginLeft={2}>
+        <Box
+          marginLeft={2}
+          flexDirection={settings.sideBySide ? 'row' : 'column'}
+          flexWrap={settings.sideBySide ? 'wrap' : 'nowrap'}
+          columnGap={3}
+        >
+          {view.items.map((item, index) => (
             <Button
+              key={`s${index}`}
               hotkey={String(index + 1)}
               plain
               label={item.label}
@@ -146,9 +153,7 @@ export const register: Register = (on, options) => {
                 )
               }}
             />
-          </Box>
-        ))}
-        <Box marginLeft={2}>
+          ))}
           <Button hotkey="0" plain label="dismiss" onPress={() => show($, { kind: 'hidden' })} />
         </Box>
       </Box>
