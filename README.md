@@ -49,6 +49,7 @@ Options (`userConfig`) are set in `/plugin` → pick the mod → configure, then
 | [`prompt-git`](prompt-git) | Appends the git branch and working-tree counts to the hint line under the prompt. | |
 | [`pixel-quest`](pixel-quest) | Replaces the spinner with a pixel RPG scene for each tool, with XP, levels and achievements. No model calls. | `/toons` |
 | [`brief-mode`](brief-mode) | Appends a short-answer style section to the system prompt: answer or next action first, numbered steps, lists capped at five, no preamble, recap or closers. Edit `hooks/rules.ts` to tune it. | |
+| [`midnight-neon`](midnight-neon) | Draws assistant replies with a dark neon palette: filled h1 banner, colored h2–h6, colored bullets, quote bars, highlighted bold, italic, inline code and links. Fences and tables keep the engine's renderer. Not installed by default; `/neon` flips it per session, `claude plugin enable\|disable` flips it for good. | `/neon` |
 
 [`_archive`](_archive) holds mods that are kept but not in use (`branch-hud`); they are not listed in the marketplace.
 

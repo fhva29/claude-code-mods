@@ -47,6 +47,10 @@
     {
       "name": "brief-mode",
       "source": "./brief-mode"
+    },
+    {
+      "name": "midnight-neon",
+      "source": "./midnight-neon"
     }
   ]
 }

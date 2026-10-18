@@ -1,0 +1,6 @@
+{
+  "name": "midnight-neon",
+  "version": "0.2.0",
+  "description": "Draws assistant replies with a dark neon palette: highlighted headers, colored bullets, quote bars and inline styles. /neon toggles it.",
+  "types": "./types/index.d.ts"
+}
