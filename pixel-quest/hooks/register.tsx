@@ -26,7 +26,7 @@ const scene = atom({ plugin: 'pixel-quest', key: 'scene' } as const, {
   lastGain: 0,
 })
 const hero = atom({ plugin: 'pixel-quest', key: 'hero' } as const, null)
-const isHidden = atom({ plugin: 'pixel-quest', key: 'isHidden' } as const, false)
+const isHidden = atom({ plugin: 'pixel-quest', key: 'isHidden' } as const, true)
 const isWide = atom({ plugin: 'pixel-quest', key: 'isWide' } as const, true)
 
 async function loadHero($: EngineInterface): Promise<HeroSave> {
@@ -70,7 +70,7 @@ export const register: Register = on => {
       name: 'toons',
       description: 'Toggle the pixel quest spinner; "/toons wide" switches full width, "/toons stats" shows your hero',
     })
-    const hidden = (await $.store.get(STORE_HIDDEN)) === true
+    const hidden = (await $.store.get(STORE_HIDDEN)) !== false
     const wide = (await $.store.get(STORE_WIDE)) !== false
     await update($, isHidden, () => hidden)
     await update($, isWide, () => wide)
