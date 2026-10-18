@@ -14,7 +14,7 @@
       "type": "number",
       "title": "Downgrade confidence",
       "description": "Minimum probability of Jev's choice to move to a cheaper tier; below it the model stays as picked or requested.",
-      "default": 0.6
+      "default": 0.5
     },
     "riskyThreshold": {
       "type": "number",
