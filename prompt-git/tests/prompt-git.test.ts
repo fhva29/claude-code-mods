@@ -10,7 +10,7 @@ test('summary shows counts or clean', async () => {
 
 test('the hint line gets the git tail', async ($, on) => {
   const out: Record<string, string> = {
-    'branch --show-current': 'Heitor-Backend\n',
+    'branch --show-current': 'feature-login\n',
     'diff --cached --name-only': '',
     'diff --name-only': 'a\nb\nc\n',
     'ls-files --others --exclude-standard': 'x.png\n',
@@ -34,7 +34,7 @@ test('the hint line gets the git tail', async ($, on) => {
       component: 'PromptHint',
       props: { isDraft: false, isWorking: false, hint: '? for shortcuts' },
     })
-    expect((await ui.find({ type: 'Text' }))?.text).toBe('? for shortcuts|⎇ Heitor-Backend · ~3 ?1')
+    expect((await ui.find({ type: 'Text' }))?.text).toBe('? for shortcuts|⎇ feature-login · ~3 ?1')
     await ui.unmount()
   }
 })

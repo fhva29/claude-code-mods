@@ -31,7 +31,7 @@ describe('parsers', () => {
 })
 
 const GIT: Record<string, string> = {
-  'rev-parse --abbrev-ref HEAD': 'Heitor-Backend',
+  'rev-parse --abbrev-ref HEAD': 'feature-login',
   'rev-parse --verify --quiet main': 'abc',
   'rev-list --left-right --count main...HEAD': '55\t203',
   'diff --name-only --diff-filter=A main...HEAD': 'BackEnd/accounts/migrations/0025_terms.py',
@@ -63,7 +63,7 @@ test('the pane draws branch, divergence and migrations on every surface', async 
       requestId: 'branch-hud',
       props: { title: 'Branch', isFocused: false, bodyColumns: 60, placement: 'dock' } as never,
     })
-    expect(await ui.find({ type: 'Text', text: /Heitor-Backend/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /feature-login/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /↑203/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /2 migrations on this branch/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /0036_new/ })).toBeDefined()
