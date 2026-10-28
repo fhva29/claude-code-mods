@@ -51,6 +51,10 @@
     {
       "name": "midnight-neon",
       "source": "./midnight-neon"
+    },
+    {
+      "name": "next-steps",
+      "source": "./next-steps"
     }
   ]
 }
