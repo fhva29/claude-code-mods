@@ -105,7 +105,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           {below}
-          <Box flexDirection="row" alignItems="center" gap={2} paddingX={1}>
+          <Box flexDirection="row" flexWrap="wrap" alignItems="center" gap={2} marginTop={1} paddingX={1}>
             <Box flexDirection="row" alignItems="center" gap={1}>
               <Text color={forecast.color} bold>
                 {forecast.label}

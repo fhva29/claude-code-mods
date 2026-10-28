@@ -89,9 +89,14 @@ export function sparklineSvg(
   const values = readings.map(r => Math.min(100, Math.max(0, r.percent)))
   const step = values.length > 1 ? width / (values.length - 1) : 0
   const pad = 1.5
+  // Scaled to the readings' own range, so a session sitting at a few percent still shows its shape;
+  // a near-flat run keeps a minimum span and sits in the middle.
+  const hi = Math.max(...values)
+  const span = Math.max(hi - Math.min(...values), 5)
+  const lo = (hi + Math.min(...values)) / 2 - span / 2
   const points = values.map((v, i) => {
     const x = (i * step).toFixed(1)
-    const y = (pad + (1 - v / 100) * (height - pad * 2)).toFixed(1)
+    const y = (pad + (1 - (v - lo) / span) * (height - pad * 2)).toFixed(1)
     return `${x},${y}`
   })
   const stroke = hexFor(color)

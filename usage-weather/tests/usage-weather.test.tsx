@@ -18,6 +18,9 @@ describe('forecast', () => {
     expect(meterSvg(50, 'success')).toContain('<rect width="48"')
     expect(meterSvg(150, 'error')).toContain('<rect width="96"')
     expect(sparklineSvg([0, 100].map(percent => ({ percent, tokens: 0, window: 1 })), 'warning')).toContain('0,16.5 72.0,1.5')
+    // Low, close readings still use the height; a flat run sits in the middle.
+    expect(sparklineSvg([4, 7].map(percent => ({ percent, tokens: 0, window: 1 })), 'warning')).toContain('0,13.5 72.0,4.5')
+    expect(sparklineSvg([7, 7].map(percent => ({ percent, tokens: 0, window: 1 })), 'warning')).toContain('0,9.0 72.0,9.0')
   })
 
   test('model ids shorten', async () => {
