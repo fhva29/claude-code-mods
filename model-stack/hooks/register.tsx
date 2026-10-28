@@ -287,8 +287,12 @@ export const register: Register = (on, options) => {
   // Files each decision edited, to spot the next runs editing them again. A reload only forgets older edits,
   // which at worst misses a rework flag.
   const quality: QualityState = { edits: new Map(), runOrder: [] }
+  // The desktop app hosts its own model picker; there the stack stays out of the way entirely.
+  let isDesktop = false
 
   on('session.start', async ($, e, next) => {
+    isDesktop = (await $.env.get('CLAUDE_CODE_ENTRYPOINT')) === 'claude-desktop'
+    if (isDesktop) return next(e)
     for (const tier of TIER_ORDER) {
       const spec = TIERS[tier]
       await $.agent.register({
@@ -344,6 +348,7 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.start', async ($, e, next) => {
+    if (isDesktop) return next(e)
     const at = await $.clock.now()
     const run: Run = { id: e.turnId, at, text: e.text.slice(0, RUN_TEXT_CHARS) }
     await update($, currentRun, () => e.turnId)
@@ -437,6 +442,7 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.step', async function* ($, e, next) {
+    if (isDesktop) return yield* next(e)
     const pending = e.agentId === undefined ? pendingMain.get(e.turnId) : undefined
     if (pending !== undefined) {
       pendingMain.delete(e.turnId)
@@ -464,6 +470,7 @@ export const register: Register = (on, options) => {
   })
 
   on('tool.call', async ($, e, next) => {
+    if (isDesktop) return next(e)
     const result = await next(e)
     try {
       const input: Record<string, unknown> = e
@@ -494,6 +501,7 @@ export const register: Register = (on, options) => {
   })
 
   on('agent.spawn', async ($, e, next) => {
+    if (isDesktop) return next(e)
     const facts = {
       subagentType: e.subagentType,
       requestedModel: e.model ?? null,
@@ -575,6 +583,7 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {
+    if (isDesktop) return next(e)
     const result = await next(e)
 
     const list = await read($, decisions)

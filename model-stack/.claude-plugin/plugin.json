@@ -1,6 +1,6 @@
 {
   "name": "model-stack",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Routes the model and effort of the main chat turn and of each subagent with TypeSafe's Jev, and shows the roster, decisions and agent graph in a pane.",
   "types": "./types/index.d.ts",
   "userConfig": {

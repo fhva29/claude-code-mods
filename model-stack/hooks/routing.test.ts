@@ -197,6 +197,34 @@ describe('agent.spawn', () => {
     expect(spawned?.subagentType).toBe('model-stack:sonnet-medium')
   })
 
+  test('stays out of the desktop app: no Jev call, no agents, no rewrite', async ($, on) => {
+    mock.env(on, { TYPESAFE_API_KEY: 'test-key', CLAUDE_CODE_ENTRYPOINT: 'claude-desktop' })
+    mock.clock(on)
+    let asked = false
+    on('http.fetch', () => {
+      asked = true
+      return { value: { status: 200, ok: true, headers: {}, text: jevBody('light', 0.9) } }
+    })
+    let registered = 0
+    on('agent.register', () => {
+      registered += 1
+      return { value: undefined } as never
+    })
+    on('session.start', () => ({ cwd: '/repo' }))
+    let spawned: AgentSpawnInput | undefined
+    on('agent.spawn', ($, e) => {
+      spawned = e
+      return { model: e.model ?? 'inherit', agentId: 'agent_5' }
+    })
+
+    await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+    await $.agent.spawn(SPAWN)
+
+    expect(registered).toBe(0)
+    expect(asked).toBe(false)
+    expect(spawned?.subagentType).toBe('general-purpose')
+  })
+
   test('leaves forks untouched without asking Jev', async ($, on) => {
     mock.env(on, { TYPESAFE_API_KEY: 'test-key' })
     mock.clock(on)
