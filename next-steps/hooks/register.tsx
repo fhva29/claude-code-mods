@@ -22,6 +22,8 @@ type View =
 
 const MAX_SUGGESTIONS = 3
 const LABEL_MAX = 48
+// Short enough that three suggestions and Dismiss fit one row of the desktop box.
+const MAX_DESKTOP_LABEL = 32
 const PROMPT_MAX = 600
 const SKILL_NAME_MAX = 64
 const SKILL_DESCRIPTION_MAX = 120
@@ -200,7 +202,9 @@ export const register: Register = (on, options) => {
     }
 
     const items = view.items
-    const pick = (prompt: string) => () => {
+    const shortLabel = (text: string): string =>
+      text.length > MAX_DESKTOP_LABEL ? `${text.slice(0, MAX_DESKTOP_LABEL - 1).trimEnd()}…` : text
+    const pick =(prompt: string) => () => {
       show($, { kind: 'hidden' })
       void $.prompt.fill({ text: prompt }).then(
         r => r.isFilled || $.ui.toast('could not fill the prompt box'),
@@ -225,9 +229,28 @@ export const register: Register = (on, options) => {
             borderColor="subtle"
           >
             <Text dimColor>Next steps</Text>
-            {items.map((item, index) => (
-              <Button key={`s${index}`} hotkey={String(index + 1)} label={item.label} onPress={pick(item.prompt)} />
-            ))}
+            {items.map((item, index) => {
+              const label = shortLabel(item.label)
+              // Buttons take no tooltip, so a cut label keeps its full text in a card the hover reveals.
+              return (
+                <Box key={`s${index}`}>
+                  <Button key={`b${index}`} hotkey={String(index + 1)} label={label} onPress={pick(item.prompt)} />
+                  {label !== item.label && (
+                    <Box
+                      position="absolute"
+                      top={1}
+                      left={0}
+                      display="none"
+                      hover={{ display: 'flex' }}
+                      paddingX={1}
+                      backgroundColor="text"
+                    >
+                      <Text color="inverseText">{item.label}</Text>
+                    </Box>
+                  )}
+                </Box>
+              )
+            })}
             <Button key="dismiss" hotkey="0" role="dismiss" label="Dismiss" onPress={() => show($, { kind: 'hidden' })} />
           </Box>
         </Box>
