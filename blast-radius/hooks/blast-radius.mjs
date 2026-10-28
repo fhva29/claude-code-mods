@@ -110,7 +110,7 @@ export function register(on) {
     if (e.requestId !== PANE_ID || held === null || held.report === null) {
       return next(e);
     }
-    return draw($.ui.resolve(e), held);
+    return draw($.ui.resolve(e), held, e.surface);
   });
 
   on("ui.render", { component: "AbovePrompt" }, async ($, e, next) => {
@@ -119,7 +119,7 @@ export function register(on) {
       return below;
     }
     const ui = $.ui.resolve(e);
-    return ui.Box({ flexDirection: "column", children: [below, draw(ui, held)] });
+    return ui.Box({ flexDirection: "column", children: [below, draw(ui, held, e.surface)] });
   });
 }
 
@@ -491,7 +491,10 @@ function paneRows(report) {
   return Math.min(24, 9 + report.lines.length + (report.more ? 1 : 0));
 }
 
-function draw(t, state) {
+function draw(t, state, surface) {
+  if (surface === "desktop") {
+    return drawDesktop(t, state);
+  }
   const { Box, Text, Button } = t;
   const { report } = state;
   const list = report.lines.map((line, i) => Text({ key: `l${i}`, children: `  ${line}`, wrap: "truncate-end" }));
@@ -522,6 +525,42 @@ function draw(t, state) {
         children: [
           Button({ key: "proceed", label: "Proceed", hotkey: "1", plain: true, onPress: decide("proceed") }),
           Button({ key: "cancel", label: "Cancel", hotkey: "2", plain: true, autoFocus: true, onPress: decide("cancel") }),
+          Text({ key: "hint", dimColor: true, children: "Claude is waiting on your answer" }),
+        ],
+      }),
+    ],
+  });
+}
+
+// The terminal layout lines labels up with spaces and draws buttons as text; on the desktop's
+// proportional font that reads as clutter, so it gets real buttons and code blocks instead.
+function drawDesktop(t, state) {
+  const { Box, Text, Button, Code } = t;
+  const { report } = state;
+  const decide = (choice) => () => {
+    if (state.decision === null) {
+      state.decision = choice;
+    }
+  };
+  const list = report.more ? [...report.lines, `+ ${report.more} more`] : report.lines;
+  return Box({
+    flexDirection: "column",
+    gap: 1,
+    paddingX: 1,
+    children: [
+      Text({ key: "title", bold: true, color: "warning", children: `⚠ ${state.risk.label}` }),
+      Code({ key: "cmd", language: "bash", source: state.command }),
+      Text({ key: "sum", children: [Text({ dimColor: true, children: "Would " }), Text({ color: "error", bold: true, children: report.summary })] }),
+      list.length > 0 ? Code({ key: "list", source: list.join("\n") }) : null,
+      report.note ? Text({ key: "note", dimColor: true, italic: true, children: report.note, wrap: "wrap" }) : null,
+      Box({
+        key: "buttons",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 1,
+        children: [
+          Button({ key: "cancel", label: "Cancel", hotkey: "2", variant: "primary", autoFocus: true, onPress: decide("cancel") }),
+          Button({ key: "proceed", label: "Run it anyway", hotkey: "1", onPress: decide("proceed") }),
           Text({ key: "hint", dimColor: true, children: "Claude is waiting on your answer" }),
         ],
       }),
