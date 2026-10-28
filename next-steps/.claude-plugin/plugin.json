@@ -1,6 +1,6 @@
 {
   "name": "next-steps",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "After each turn, suggests up to three next prompts above the input. Press 1, 2 or 3 to put one in the prompt box as a draft you can edit, 0 to dismiss. Fork of claude-community/next-steps that draws the suggestions as buttons in the desktop app.",
   "author": {
     "name": "Thariq Shihipar"

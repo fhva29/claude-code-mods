@@ -208,20 +208,27 @@ export const register: Register = (on, options) => {
       )
     }
 
-    // The terminal's indented "1: label" list reads as loose text on the desktop; there each
-    // suggestion is its own button, stacked so long labels neither wrap into ragged rows nor get cut.
+    // The terminal's indented "1: label" list reads as loose text on the desktop; there the
+    // suggestions are a row of buttons in a bordered box of their own, apart from other bands.
     if (e.surface === 'desktop') {
       return (
         <Box flexDirection="column">
           {below}
-          <Box flexDirection="column" alignItems="flex-start" gap={1} marginTop={1} paddingX={1}>
-            <Box flexDirection="row" alignItems="center" gap={1}>
-              <Text dimColor>Next steps</Text>
-              <Button key="dismiss" hotkey="0" role="dismiss" label="Dismiss" onPress={() => show($, { kind: 'hidden' })} />
-            </Box>
+          <Box
+            flexDirection="row"
+            flexWrap="wrap"
+            alignItems="center"
+            gap={1}
+            marginTop={1}
+            paddingX={1}
+            borderStyle="round"
+            borderColor="subtle"
+          >
+            <Text dimColor>Next steps</Text>
             {items.map((item, index) => (
               <Button key={`s${index}`} hotkey={String(index + 1)} label={item.label} onPress={pick(item.prompt)} />
             ))}
+            <Button key="dismiss" hotkey="0" role="dismiss" label="Dismiss" onPress={() => show($, { kind: 'hidden' })} />
           </Box>
         </Box>
       )
