@@ -8,9 +8,11 @@ import {
   limitColor,
   limitLabel,
   meter,
+  meterSvg,
   shortModel,
   signedTokens,
   sparkline,
+  sparklineSvg,
 } from './forecast'
 
 const HISTORY = 24
@@ -96,6 +98,51 @@ export const register: Register = on => {
     const previous = history.at(-2)
     const delta = previous === undefined ? null : latest.tokens - previous.tokens
     const sep = <Text dimColor> │ </Text>
+
+    // A proportional font misaligns the block-glyph meter and sparkline, so the desktop draws them as SVG.
+    if (e.surface === 'desktop') {
+      const { Svg } = $.ui.resolve(e)
+      return (
+        <Box flexDirection="column">
+          {below}
+          <Box flexDirection="row" alignItems="center" gap={2} paddingX={1}>
+            <Box flexDirection="row" alignItems="center" gap={1}>
+              <Text color={forecast.color} bold>
+                {forecast.label}
+              </Text>
+              <Svg source={meterSvg(latest.percent, forecast.color)} alt={`Context ${latest.percent}% full`} />
+              <Text bold>{latest.percent}%</Text>
+              <Text dimColor>
+                {compactTokens(latest.tokens)} / {compactTokens(latest.window)}
+              </Text>
+            </Box>
+            {history.length > 1 && (
+              <Box flexDirection="row" alignItems="center" gap={1}>
+                <Svg source={sparklineSvg(history, forecast.color)} alt="Context fill over recent turns" />
+                {delta !== null && (
+                  <Text color={delta > 20_000 ? 'warning' : 'subtle'}>{signedTokens(delta)}</Text>
+                )}
+              </Box>
+            )}
+            {snap !== null && snap.limits.length > 0 && (
+              <Box flexDirection="row" alignItems="center" gap={1}>
+                {snap.limits.map(limit => (
+                  <Text color={limitColor(limit.percentUsed)}>
+                    {limitLabel(limit)} {Math.round(limit.percentUsed)}%
+                  </Text>
+                ))}
+              </Box>
+            )}
+            {snap !== null && (
+              <Text>
+                <Text color="claude">{shortModel(snap.model)}</Text>
+                {snap.effort !== null && <Text dimColor> · {snap.effort}</Text>}
+              </Text>
+            )}
+          </Box>
+        </Box>
+      )
+    }
 
     return (
       <Box flexDirection="column">

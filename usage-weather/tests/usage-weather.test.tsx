@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { forecastFor, meter, shortModel, sparkline } from '../hooks/forecast'
+import { forecastFor, meter, meterSvg, shortModel, sparkline, sparklineSvg } from '../hooks/forecast'
 
 describe('forecast', () => {
   test('weather follows the fill', async () => {
@@ -12,6 +12,12 @@ describe('forecast', () => {
   test('meter and sparkline draw fixed widths', async () => {
     expect(meter(50, 10)).toBe('▰▰▰▰▰▱▱▱▱▱')
     expect(sparkline([0, 50, 100].map(percent => ({ percent, tokens: 0, window: 1 })), 3)).toBe('▁▅█')
+  })
+
+  test('svg meter and sparkline stay inside their box', async () => {
+    expect(meterSvg(50, 'success')).toContain('<rect width="48"')
+    expect(meterSvg(150, 'error')).toContain('<rect width="96"')
+    expect(sparklineSvg([0, 100].map(percent => ({ percent, tokens: 0, window: 1 })), 'warning')).toContain('0,16.5 72.0,1.5')
   })
 
   test('model ids shorten', async () => {
@@ -35,6 +41,11 @@ test('the band follows the context window on every surface', async ($, on) => {
   on('session.start', () => ({ cwd: '/repo' }))
   on('turn.complete', () => ({ text: '' }))
   on('command.register', () => ({ value: undefined }) as never)
+  // Stands for the engine beneath the band, which draws nothing of its own here.
+  on('ui.render', ($, e) => {
+    const { Box } = $.ui.resolve(e)
+    return <Box />
+  })
 
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
 
@@ -44,6 +55,8 @@ test('the band follows the context window on every surface', async ($, on) => {
     expect(await ui.find({ type: 'Text', text: /Clear/ }), 'check 1: ' + (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /5h 72%/ }), 'check 2: ' + (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Opus 5\.5/ }), 'check 3: ' + (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')).toBeDefined()
+    // The desktop swaps the block glyphs for SVG; the terminal keeps its text meter.
+    expect(await ui.find({ type: 'Svg' }) !== undefined).toBe(surface === 'desktop')
     await ui.unmount()
   }
 
