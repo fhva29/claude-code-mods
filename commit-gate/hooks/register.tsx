@@ -4,6 +4,13 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { CommitGateFile, CommitGateHold } from '../types'
 import { attributionIn, commitMessage, isCommit, pendingAdds } from './parse'
 
+const PANE_ID = 'commit-gate'
+// Path width for the terminal pane; the engine does not hand the pane's width to the hook.
+const PANE_COLUMNS = 60
+
+// Where the held review draws. Module-local: a reload drops it along with the waiting hook.
+let placement: 'pane' | 'band' = 'band'
+
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit'])
 
 const touched = atom({ plugin: 'commit-gate', key: 'touched' } as const, [])
@@ -54,10 +61,14 @@ function statusColor(status: string): string {
 
 type RenderEvent = Parameters<EngineInterface['ui']['resolve']>[0]
 
-function drawHold($: EngineInterface, e: RenderEvent, current: CommitGateHold, columns: number) {
+function drawHold($: EngineInterface, e: RenderEvent, current: CommitGateHold, columns: number, isBand: boolean) {
   const { Box, Text, Button } = $.ui.resolve(e)
   const strangers = current.files.filter(file => !file.isTouched)
   const pathWidth = Math.max(20, columns - 30)
+
+  if (e.surface === 'desktop') {
+    return drawHoldDesktop($, e, current, strangers.length, isBand)
+  }
 
   return (
     <Box flexDirection="column" paddingX={1}>
@@ -120,6 +131,90 @@ function drawHold($: EngineInterface, e: RenderEvent, current: CommitGateHold, c
   )
 }
 
+// The terminal's glyph columns and space-aligned labels read as clutter in a proportional font; the
+// desktop gets a rounded card like its own permission prompts: the message as code, a mono file list
+// with status badges, and native buttons.
+function drawHoldDesktop($: EngineInterface, e: RenderEvent, current: CommitGateHold, strangers: number, isBand: boolean) {
+  const { Box, Text, Button, Code } = $.ui.resolve(e)
+  const counts = [
+    `${current.files.length} staged`,
+    current.pendingAdds.length > 0 ? `${current.pendingAdds.length} added by this command` : '',
+  ].filter(Boolean)
+
+  return (
+    <Box
+      flexDirection="column"
+      gap="sm"
+      paddingX="md"
+      paddingY="sm"
+      // A pane already has chrome; only the band fallback draws its own card border.
+      {...(isBand
+        ? { marginTop: 'xs', borderStyle: 'round', borderColor: strangers > 0 ? 'warning' : 'permission' }
+        : {})}
+    >
+      <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="sm">
+        <Text>
+          <Text weight="semibold">Commit gate</Text>
+          <Text size="caption" dimColor>
+            {'  '}held until you decide
+          </Text>
+        </Text>
+        <Text size="caption" dimColor tabular>
+          {counts.join(' · ')}
+        </Text>
+      </Box>
+      {current.message !== '' && <Code source={current.message} />}
+      <Box flexDirection="column" gap="xs">
+        {current.files.map(file => (
+          <Box key={`f:${file.path}`} flexDirection="row" alignItems="center" gap="sm">
+            <Text size="caption" mono weight="semibold" color={statusColor(file.status)}>
+              {file.status}
+            </Text>
+            <Text size="footnote" mono wrap="truncate-start" color={file.isTouched ? undefined : 'warning'}>
+              {file.path}
+            </Text>
+            {!file.isTouched && (
+              <Text size="caption" color="warning">
+                not edited this session
+              </Text>
+            )}
+          </Box>
+        ))}
+        {current.pendingAdds.map(path => (
+          <Box key={`a:${path}`} flexDirection="row" alignItems="center" gap="sm">
+            <Text size="caption" mono weight="semibold" color="suggestion">
+              +
+            </Text>
+            <Text size="footnote" mono>
+              {path}
+            </Text>
+            <Text size="caption" dimColor>
+              git add
+            </Text>
+          </Box>
+        ))}
+      </Box>
+      {strangers > 0 && (
+        <Text size="caption" color="warning" weight="medium">
+          {strangers === 1 ? '1 staged file was' : `${strangers} staged files were`} not edited in this session. Check
+          they belong here.
+        </Text>
+      )}
+      <Box flexDirection="row" alignItems="center" gap="xs">
+        <Button
+          key="commit"
+          label="Commit"
+          hotkey="1"
+          variant="primary"
+          autoFocus
+          onPress={() => decide($, current.id, 'commit')}
+        />
+        <Button key="cancel" label="Cancel" hotkey="2" onPress={() => decide($, current.id, 'cancel')} />
+      </Box>
+    </Box>
+  )
+}
+
 export const register: Register = on => {
   on('tool.call', async ($, e, next) => {
     const result = await next(e)
@@ -165,9 +260,20 @@ export const register: Register = on => {
     }
     await update($, hold, () => current)
 
-    const decision = await waitForDecision(current.id, $, next.signal)
-    decisions.delete(current.id)
-    await update($, hold, () => null)
+    // Beside the chat when the surface places a pane; a narrow terminal falls back to the band.
+    const rows = Math.min(24, 10 + files.length + adds.length)
+    const opened = await $.ui.open({ id: PANE_ID, title: 'Commit gate', focus: true, rows }).catch(() => ({ isPlaced: false }))
+    placement = opened.isPlaced ? 'pane' : 'band'
+    $.ui.invalidate('ui.render')
+
+    let decision: 'commit' | 'cancel'
+    try {
+      decision = await waitForDecision(current.id, $, next.signal)
+    } finally {
+      decisions.delete(current.id)
+      await update($, hold, () => null)
+      if (opened.isPlaced) await $.ui.close({ id: PANE_ID }).catch(() => undefined)
+    }
 
     if (decision === 'commit') {
       return next(e)
@@ -181,18 +287,25 @@ export const register: Register = on => {
     next.called ? next(e) : { deny: 'commit-gate: its check failed, so the commit was held.' },
   )
 
-  // The review always draws above the prompt.
+  on('ui.render', { component: 'Pane' }, async ($, e, next) => {
+    const current = await read($, hold)
+    if (e.requestId !== PANE_ID || current === null) {
+      return next(e)
+    }
+    return drawHold($, e, current, PANE_COLUMNS, false)
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     const current = await read($, hold)
-    if (current === null) {
+    if (current === null || placement === 'pane') {
       return below
     }
     const { Box } = $.ui.resolve(e)
     return (
       <Box flexDirection="column">
         {below}
-        {drawHold($, e, current, e.props.bodyColumns)}
+        {drawHold($, e, current, e.props.bodyColumns, true)}
       </Box>
     )
   })
