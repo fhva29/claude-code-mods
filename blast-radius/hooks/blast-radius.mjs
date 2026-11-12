@@ -533,10 +533,13 @@ function draw(t, state, surface) {
 }
 
 // The terminal layout lines labels up with spaces and draws buttons as text; on the desktop's
-// proportional font that reads as clutter, so it gets real buttons and code blocks instead.
+// proportional font that reads as clutter, so it gets the same rounded card as the other holds:
+// a heading, the command and what it would touch as code, and native buttons. In the band the card
+// draws its own border; a pane already has chrome.
 function drawDesktop(t, state) {
   const { Box, Text, Button, Code } = t;
   const { report } = state;
+  const isBand = state.where === "band";
   const decide = (choice) => () => {
     if (state.decision === null) {
       state.decision = choice;
@@ -545,23 +548,37 @@ function drawDesktop(t, state) {
   const list = report.more ? [...report.lines, `+ ${report.more} more`] : report.lines;
   return Box({
     flexDirection: "column",
-    gap: 1,
-    paddingX: 1,
+    gap: "sm",
+    paddingX: "md",
+    paddingY: "sm",
+    ...(isBand ? { marginTop: "xs", borderStyle: "round", borderColor: "error" } : {}),
     children: [
-      Text({ key: "title", bold: true, color: "warning", children: `⚠ ${state.risk.label}` }),
+      Box({
+        key: "head",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "sm",
+        children: [
+          Text({ key: "title", children: [
+            Text({ weight: "semibold", color: "error", children: "Blast radius" }),
+            Text({ size: "caption", dimColor: true, children: `  ${state.risk.label}` }),
+          ] }),
+          Text({ key: "wait", size: "caption", dimColor: true, children: "Held until you decide" }),
+        ],
+      }),
       Code({ key: "cmd", language: "bash", source: state.command }),
-      Text({ key: "sum", children: [Text({ dimColor: true, children: "Would " }), Text({ color: "error", bold: true, children: report.summary })] }),
+      Text({ key: "sum", weight: "medium", children: [Text({ dimColor: true, weight: "regular", children: "Would " }), report.summary] }),
       list.length > 0 ? Code({ key: "list", source: list.join("\n") }) : null,
-      report.note ? Text({ key: "note", dimColor: true, italic: true, children: report.note, wrap: "wrap" }) : null,
+      report.note ? Text({ key: "note", size: "caption", dimColor: true, children: report.note, wrap: "wrap" }) : null,
       Box({
         key: "buttons",
         flexDirection: "row",
         alignItems: "center",
-        gap: 1,
+        gap: "xs",
         children: [
           Button({ key: "cancel", label: "Cancel", hotkey: "2", variant: "primary", autoFocus: true, onPress: decide("cancel") }),
           Button({ key: "proceed", label: "Run it anyway", hotkey: "1", onPress: decide("proceed") }),
-          Text({ key: "hint", dimColor: true, children: "Claude is waiting on your answer" }),
         ],
       }),
     ],
