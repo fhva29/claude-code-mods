@@ -4,6 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { UsageWeatherReading, UsageWeatherSnapshot } from '../types'
 import {
   compactTokens,
+  dividerSvg,
   forecastFor,
   limitColor,
   limitLabel,
@@ -99,46 +100,58 @@ export const register: Register = on => {
     const delta = previous === undefined ? null : latest.tokens - previous.tokens
     const sep = <Text dimColor> │ </Text>
 
-    // A proportional font misaligns the block-glyph meter and sparkline, so the desktop draws them as SVG.
+    // A proportional font misaligns the block-glyph meter and sparkline, so the desktop draws them as SVG,
+    // in a quiet caption-sized strip of groups split by hairlines, like the app's own composer footer.
     if (e.surface === 'desktop') {
       const { Svg } = $.ui.resolve(e)
+      const divider = <Svg source={dividerSvg()} alt="" />
+      const groups = [
+        <Box key="fill" flexDirection="row" alignItems="center" gap="sm">
+          <Text size="footnote" weight="semibold" color={forecast.color}>
+            {forecast.label}
+          </Text>
+          <Svg source={meterSvg(latest.percent, forecast.color)} alt={`Context ${latest.percent}% full`} />
+          <Text size="footnote" weight="medium" tabular>
+            {latest.percent}%
+          </Text>
+          <Text size="footnote" dimColor tabular>
+            {compactTokens(latest.tokens)} of {compactTokens(latest.window)}
+          </Text>
+        </Box>,
+        history.length > 1 && (
+          <Box key="trend" flexDirection="row" alignItems="center" gap="xs">
+            <Svg source={sparklineSvg(history, forecast.color)} alt="Context fill over recent turns" />
+            {delta !== null && (
+              <Text size="footnote" tabular color={delta > 20_000 ? 'warning' : undefined} dimColor={delta <= 20_000}>
+                {signedTokens(delta)}
+              </Text>
+            )}
+          </Box>
+        ),
+        snap !== null && snap.limits.length > 0 && (
+          <Box key="limits" flexDirection="row" alignItems="center" gap="sm">
+            {snap.limits.map(limit => (
+              <Text size="footnote" tabular>
+                <Text dimColor>{limitLabel(limit)} </Text>
+                <Text weight="medium" color={limitColor(limit.percentUsed)}>
+                  {Math.round(limit.percentUsed)}%
+                </Text>
+              </Text>
+            ))}
+          </Box>
+        ),
+        snap !== null && (
+          <Text key="model" size="footnote">
+            <Text weight="medium">{shortModel(snap.model)}</Text>
+            {snap.effort !== null && <Text dimColor> · {snap.effort}</Text>}
+          </Text>
+        ),
+      ].filter(Boolean)
       return (
         <Box flexDirection="column">
           {below}
-          <Box flexDirection="row" flexWrap="wrap" alignItems="center" gap={2} marginTop={1} paddingX={1}>
-            <Box flexDirection="row" alignItems="center" gap={1}>
-              <Text color={forecast.color} bold>
-                {forecast.label}
-              </Text>
-              <Svg source={meterSvg(latest.percent, forecast.color)} alt={`Context ${latest.percent}% full`} />
-              <Text bold>{latest.percent}%</Text>
-              <Text dimColor>
-                {compactTokens(latest.tokens)} / {compactTokens(latest.window)}
-              </Text>
-            </Box>
-            {history.length > 1 && (
-              <Box flexDirection="row" alignItems="center" gap={1}>
-                <Svg source={sparklineSvg(history, forecast.color)} alt="Context fill over recent turns" />
-                {delta !== null && (
-                  <Text color={delta > 20_000 ? 'warning' : 'subtle'}>{signedTokens(delta)}</Text>
-                )}
-              </Box>
-            )}
-            {snap !== null && snap.limits.length > 0 && (
-              <Box flexDirection="row" alignItems="center" gap={1}>
-                {snap.limits.map(limit => (
-                  <Text color={limitColor(limit.percentUsed)}>
-                    {limitLabel(limit)} {Math.round(limit.percentUsed)}%
-                  </Text>
-                ))}
-              </Box>
-            )}
-            {snap !== null && (
-              <Text>
-                <Text color="claude">{shortModel(snap.model)}</Text>
-                {snap.effort !== null && <Text dimColor> · {snap.effort}</Text>}
-              </Text>
-            )}
+          <Box flexDirection="row" flexWrap="wrap" alignItems="center" columnGap="md" rowGap="xs" paddingX="sm" paddingY="xs">
+            {groups.flatMap((group, index) => (index === 0 ? [group] : [divider, group]))}
           </Box>
         </Box>
       )

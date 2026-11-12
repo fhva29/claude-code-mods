@@ -68,7 +68,7 @@ export function hexFor(color: string): string {
   return HEX[color] ?? '#d97757'
 }
 
-export function meterSvg(percent: number, color: string, width = 96, height = 8): string {
+export function meterSvg(percent: number, color: string, width = 72, height = 7): string {
   const clamped = Math.min(100, Math.max(0, percent))
   const filled = Math.max(clamped > 0 ? height : 0, Math.round((clamped / 100) * width))
   const r = height / 2
@@ -83,8 +83,8 @@ export function meterSvg(percent: number, color: string, width = 96, height = 8)
 export function sparklineSvg(
   readings: readonly UsageWeatherReading[],
   color: string,
-  width = 72,
-  height = 18,
+  width = 64,
+  height = 16,
 ): string {
   const values = readings.map(r => Math.min(100, Math.max(0, r.percent)))
   const step = values.length > 1 ? width / (values.length - 1) : 0
@@ -104,6 +104,15 @@ export function sparklineSvg(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
     `<polygon points="0,${height} ${points.join(' ')} ${width},${height}" fill="${stroke}" fill-opacity="0.18"/>` +
     `<polyline points="${points.join(' ')}" fill="none" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>` +
+    '</svg>'
+  )
+}
+
+// A hairline between the strip's groups; text glyphs like │ sit off the caption's baseline.
+export function dividerSvg(height = 14): string {
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="${height}" viewBox="0 0 1 ${height}">` +
+    `<rect width="1" height="${height}" fill="${TRACK}"/>` +
     '</svg>'
   )
 }
