@@ -1,6 +1,6 @@
 {
   "name": "next-lite",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Suggests up to three next prompts above the input from a small digest of the turn on a cheap model, instead of forking the whole session.",
   "author": {
     "name": "Heitor V"

@@ -41,6 +41,27 @@ function show($: EngineInterface, nextView: View): void {
   $.ui.invalidate('ui.render')
 }
 
+// Short enough that three suggestions and the close control share one row of the desktop card.
+const MAX_DESKTOP_LABEL = 32
+
+// Theme keys text/inverseText come out near-identical on the desktop, so the hover card uses a
+// fixed dark tooltip that reads on both light and dark themes.
+const TOOLTIP_BACKGROUND = '#2b2a27'
+const TOOLTIP_TEXT = '#f5f4ef'
+
+function shortLabel(label: string): string {
+  const points = [...label]
+  return points.length > MAX_DESKTOP_LABEL ? `${points.slice(0, MAX_DESKTOP_LABEL - 1).join('').trimEnd()}…` : label
+}
+
+function fill($: EngineInterface, item: Suggestion): void {
+  show($, { kind: 'hidden' })
+  void $.prompt.fill({ text: item.prompt }).then(
+    r => r.isFilled || $.ui.toast('could not fill the prompt box'),
+    error => $.ui.toast(`could not fill: ${String(error)}`),
+  )
+}
+
 async function suggest($: EngineInterface, digest: TurnDigest, settings: Settings): Promise<void> {
   const mine = ++token
   show($, { kind: 'loading', token: mine })
@@ -117,6 +138,63 @@ export const register: Register = (on, options) => {
     if (e.props.hasSurvey || e.props.isWorking || view.kind === 'hidden') return below
     const { Box, Text, Button } = $.ui.resolve(e)
 
+    // The terminal's "1: label" list reads as loose text on the desktop; there the suggestions are
+    // native buttons in a rounded card of their own, with the card's close control as dismiss.
+    if (e.surface === 'desktop') {
+      const dismiss = (
+        <Button key="dismiss" hotkey="0" role="dismiss" label="Dismiss" onPress={() => show($, { kind: 'hidden' })} />
+      )
+      return (
+        <Box flexDirection="column">
+          {below}
+          <Box
+            flexDirection="row"
+            alignItems="center"
+            gap="sm"
+            marginTop="xs"
+            paddingX="md"
+            paddingY="sm"
+            borderStyle="round"
+            borderColor="subtle"
+          >
+            <Text size="caption" weight="medium" dimColor>
+              {view.kind === 'loading' ? 'Thinking of next steps…' : 'Next'}
+            </Text>
+            {view.kind === 'offer' && (
+              <Box flexDirection="row" flexWrap="wrap" alignItems="center" gap="xs" flexGrow={1}>
+                {view.items.map((item, index) => {
+                  const label = shortLabel(item.label)
+                  // Buttons take no tooltip, so a cut label keeps its full text in a card the hover reveals.
+                  return (
+                    <Box key={`s${index}`}>
+                      <Button key={`b${index}`} hotkey={String(index + 1)} label={label} onPress={() => fill($, item)} />
+                      {label !== item.label && (
+                        <Box
+                          position="absolute"
+                          top={1}
+                          left={0}
+                          display="none"
+                          hover={{ display: 'flex' }}
+                          paddingX="sm"
+                          paddingY="xs"
+                          backgroundColor={TOOLTIP_BACKGROUND}
+                        >
+                          <Text size="footnote" color={TOOLTIP_TEXT}>
+                            {item.label}
+                          </Text>
+                        </Box>
+                      )}
+                    </Box>
+                  )
+                })}
+              </Box>
+            )}
+            {dismiss}
+          </Box>
+        </Box>
+      )
+    }
+
     if (view.kind === 'loading') {
       return (
         <Box flexDirection="column">
@@ -145,13 +223,7 @@ export const register: Register = (on, options) => {
               hotkey={String(index + 1)}
               plain
               label={item.label}
-              onPress={() => {
-                show($, { kind: 'hidden' })
-                void $.prompt.fill({ text: item.prompt }).then(
-                  r => r.isFilled || $.ui.toast('could not fill the prompt box'),
-                  error => $.ui.toast(`could not fill: ${String(error)}`),
-                )
-              }}
+              onPress={() => fill($, item)}
             />
           ))}
           <Button hotkey="0" plain label="dismiss" onPress={() => show($, { kind: 'hidden' })} />

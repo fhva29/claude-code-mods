@@ -68,15 +68,17 @@ test('a qualifying turn offers buttons from one small completion', async ($, on)
   expect(asked[0]?.includes('Edit accounts/serializers.py')).toBe(true)
   expect(asked[0]?.includes('corrige o serializer')).toBe(true)
 
-  const ui = await $.ui.mount({
-    plugin: 'next-lite',
-    surface: 'terminal',
-    component: 'AbovePrompt',
-    props: { hasSurvey: false, isWorking: false } as never,
-  })
-  expect((await ui.find({ type: 'Button', text: 'Run tests' })) !== undefined).toBe(true)
-  expect(await ui.find({ type: 'Button', text: 'Not offered' })).toBeUndefined()
-  await ui.unmount()
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({
+      plugin: 'next-lite',
+      surface,
+      component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: false } as never,
+    })
+    expect((await ui.find({ type: 'Button', text: 'Run tests' })) !== undefined).toBe(true)
+    expect(await ui.find({ type: 'Button', text: 'Not offered' })).toBeUndefined()
+    await ui.unmount()
+  }
 })
 
 test('a subagent turn and a bare short answer ask nothing', async ($, on) => {
