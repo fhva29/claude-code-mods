@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { CommitGateFile, CommitGateHold } from '../types'
-import { attributionIn, commitMessage, isCommit, pendingAdds } from './parse'
+import { attributionIn, commitDir, commitMessage, isCommit, pendingAdds } from './parse'
 
 const PANE_ID = 'commit-gate'
 // Path width for the terminal pane; the engine does not hand the pane's width to the hook.
@@ -16,14 +16,14 @@ const EDIT_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit'])
 const touched = atom({ plugin: 'commit-gate', key: 'touched' } as const, [])
 const hold = atom({ plugin: 'commit-gate', key: 'hold' } as const, null)
 
-async function git($: EngineInterface, args: string[]): Promise<string> {
-  const { exitCode, stdout } = await $.process.run(['git', ...args])
+async function git($: EngineInterface, args: string[], cwd: string | null): Promise<string> {
+  const { exitCode, stdout } = await $.process.run(['git', ...args], cwd === null ? undefined : { cwd })
   return exitCode === 0 ? stdout.trim() : ''
 }
 
-async function stagedFiles($: EngineInterface, edited: readonly string[]): Promise<CommitGateFile[]> {
-  const root = await git($, ['rev-parse', '--show-toplevel'])
-  const lines = (await git($, ['diff', '--cached', '--name-status'])).split('\n')
+async function stagedFiles($: EngineInterface, edited: readonly string[], cwd: string | null): Promise<CommitGateFile[]> {
+  const root = await git($, ['rev-parse', '--show-toplevel'], cwd)
+  const lines = (await git($, ['diff', '--cached', '--name-status'], cwd)).split('\n')
   return lines
     .filter(line => line.trim() !== '')
     .map(line => {
@@ -244,7 +244,7 @@ export const register: Register = on => {
     }
 
     const edited = await read($, touched)
-    const files = await stagedFiles($, edited)
+    const files = await stagedFiles($, edited, commitDir(e.command))
     const adds = pendingAdds(e.command)
     if (files.length === 0 && adds.length === 0) {
       return next(e)

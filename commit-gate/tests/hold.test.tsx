@@ -58,3 +58,40 @@ for (const choice of ['commit', 'cancel'] as const) {
     }
   })
 }
+
+test('a commit behind cd lists the staged files of that folder', async ($, on) => {
+  const ok = (stdout: string) => ({
+    value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
+  })
+  on('process.run', async (_$, e) => {
+    if (e.argv[0] === 'sleep') {
+      await new Promise<void>(resolve => setTimeout(resolve, 5))
+      return ok('')
+    }
+    const argv = e.argv.join(' ')
+    const inDemo = e.init?.cwd === '/demo'
+    if (argv === 'git rev-parse --show-toplevel') return ok(inDemo ? '/demo\n' : '/session\n')
+    if (argv.startsWith('git diff --cached')) return ok(inDemo ? 'M\tdemo.txt\n' : 'M\tsession.txt\n')
+    return ok('')
+  })
+  on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
+    const { Box } = $.ui.resolve(e)
+    return <Box />
+  })
+  on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: '', stderr: '', interrupted: false } }) as never)
+
+  const call = $.tool.call({ tool: 'Bash', command: 'cd /demo && git commit -m "x"' })
+  let pressed = false
+  for (let attempt = 0; attempt < 200 && !pressed; attempt += 1) {
+    const ui = await $.ui.mount({ plugin: 'commit-gate', surface: 'desktop', ...BAND, props: BAND_PROPS })
+    if ((await ui.find({ key: 'cancel' })) !== undefined) {
+      expect(await ui.find({ type: 'Text', text: /demo\.txt/ })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /session\.txt/ })).toBeUndefined()
+      await ui.press({ key: 'cancel' })
+      pressed = true
+    }
+    await ui.unmount()
+  }
+  expect(pressed).toBe(true)
+  await call
+})
