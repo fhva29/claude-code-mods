@@ -6,7 +6,7 @@ import { diffFenceTag, fenceDiff, newOnly } from '../hooks/diff-fence'
 import { DEFAULT_PREFS } from '../hooks/command'
 import { replySegments } from '../hooks/reply'
 import dracula from '../hooks/themes/dracula'
-import neon from '../hooks/themes/neon'
+import shipped from '../hooks/themes/github'
 import noir from '../hooks/themes/noir'
 
 // The upstream defaults these tests were written against; fhva-skins ships others.
@@ -65,7 +65,7 @@ test('a diff fence on the terminal is numbered rows in the skin’s colours, wit
   const ui = await $.ui.mount(reply(DIFF))
   const added = (await ui.find({ type: 'Text', text: /11 \+ {3}return n <= 10/ })) as Node | undefined
   expect(added).toBeDefined()
-  expect(JSON.stringify(added)).toContain(neon.palette.ok)
+  expect(JSON.stringify(added)).toContain(shipped.palette.ok)
   expect(await ui.find({ type: 'Text', text: /11 {4}- {3}return n < 10/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /src\/limit\.ts/ })).toBeDefined()
 

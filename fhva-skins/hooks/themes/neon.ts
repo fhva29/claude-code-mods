@@ -1,6 +1,6 @@
 import type { Skin } from '../skin'
 
-// The default: the dark neon palette of the midnight-neon mod, with a light twin.
+// The dark neon palette of the midnight-neon mod, with a light twin.
 const skin: Skin = {
   name: 'neon',
   label: 'Midnight Neon',

@@ -55,6 +55,8 @@ const prefsAtom = atom({ plugin: 'fhva-skins', key: 'prefs' } as const, DEFAULT_
 const customAtom = atom({ plugin: 'fhva-skins', key: 'custom' } as const, {})
 const startedAtom = atom({ plugin: 'fhva-skins', key: 'startedAt' } as const, 0)
 const frameAtom = atom({ plugin: 'fhva-skins', key: 'frame' } as const, 0)
+// Whole seconds since the turn started, for the desktop spinner's timer: a redraw a second, not a frame.
+const secondsAtom = atom({ plugin: 'fhva-skins', key: 'seconds' } as const, 0)
 const turnsAtom = atom({ plugin: 'fhva-skins', key: 'turns' } as const, {})
 const durationAtom = atom({ plugin: 'fhva-skins', key: 'duration' } as const, -1)
 const editingAtom = atom({ plugin: 'fhva-skins', key: 'editing' } as const, 'user' as SkinSlot)
@@ -80,6 +82,9 @@ const foldsAtom = atom({ plugin: 'fhva-skins', key: 'folds' } as const, [] as st
 // The main loop's last answer, for `/skin copy`.
 // The main loop's model and effort, shown at the band's right as `Opus 5.5 · high`.
 const modelAtom = atom({ plugin: 'fhva-skins', key: 'model' } as const, '')
+const trendAtom = atom({ plugin: 'fhva-skins', key: 'trend' } as const, [] as number[])
+// Turns the sparkline remembers.
+const TREND_TURNS = 24
 const lastReplyAtom = atom({ plugin: 'fhva-skins', key: 'lastReply' } as const, '')
 
 const EDITS = new Set(['Edit', 'MultiEdit', 'Write'])
@@ -478,11 +483,19 @@ export function contextPercent(context: SessionContextUsage): number | null {
   return context.percent ?? null
 }
 
+// The window the context percent is measured on: where it compacts, or the model's whole window.
+export function contextWindow(context: SessionContextUsage): number {
+  const compactsAt = context.breakdown?.rawMaxTokens
+
+  return context.tokens !== undefined && compactsAt !== undefined && compactsAt > 0 && compactsAt < context.window ? compactsAt : context.window
+}
+
 async function refreshUsage($: EngineInterface): Promise<void> {
   // A summary breakdown is counted locally; it is asked for only for its window.
   const usage = await $.session.usage({ breakdown: 'summary' })
   const snap: UsageSnap = {
     context: contextPercent(usage.context),
+    ...(usage.context.tokens === undefined ? {} : { tokens: usage.context.tokens, window: contextWindow(usage.context) }),
     limits: usage.rateLimits.map(limit => {
       const resetsAt = limit.resetsAt === undefined ? NaN : Date.parse(limit.resetsAt)
 
@@ -491,6 +504,11 @@ async function refreshUsage($: EngineInterface): Promise<void> {
   }
   // A window that resets moves its reset time even where its percent stays the same.
   const drawn = (of: UsageSnap) => JSON.stringify([metersOf(of), of.limits.map(limit => limit.resetsAt ?? null)])
+  const tokens = snap.tokens
+
+  if (tokens !== undefined && (await read($, trendAtom)).at(-1) !== tokens) {
+    await update($, trendAtom, trend => [...trend, tokens].slice(-TREND_TURNS))
+  }
 
   if (drawn(await read($, usageAtom)) === drawn(snap)) {
     return
@@ -567,6 +585,11 @@ export const register: Register = on => {
     ticker = $.clock.every(FRAME_MS, () => {
       if (isWorking) {
         void update($, frameAtom, frame => frame + 1)
+        void Promise.all([read($, startedAtom), $.clock.now()]).then(([startedAt, now]) => {
+          const seconds = startedAt === 0 ? 0 : Math.floor((now - startedAt) / 1000)
+
+          return read($, secondsAtom).then(shown => (shown === seconds ? undefined : update($, secondsAtom, () => seconds)))
+        })
       }
 
       if (settling.size > 0) {
@@ -610,6 +633,7 @@ export const register: Register = on => {
     await update($, touchedAtom, () => ({}))
     const now = await $.clock.now()
     await update($, startedAtom, () => now)
+    await update($, secondsAtom, () => 0)
 
     return next(e)
   })
@@ -1035,8 +1059,8 @@ export const register: Register = on => {
     const base = await sessionLook($, e, lookOf(ui, active, e.surface, copy), replyNeeds(text, segments))
     const look = base.svg === undefined ? base : { ...base, isFirstDraw: await firstDraws($, e, prefs) }
 
-    // A reply of several blocks can be copied whole, as Claude wrote it.
-    return withSettle($, e, replyRows(look, segments, e.viewport?.columns ?? 100, svg, segments.length > 1 ? text : undefined))
+    // No `copy reply`: the app copies a whole reply on its own.
+    return withSettle($, e, replyRows(look, segments, e.viewport?.columns ?? 100, svg))
   })
 
   // A slash command's output (`/cost`, `/context`, a plugin's) drawn the way a reply is: its
@@ -1082,7 +1106,7 @@ export const register: Register = on => {
       // Calm keeps the app's own, quieter spinner.
       return look.svg === undefined || active.prefs.calm !== null
         ? next(e)
-        : desktopSpinnerRow(look, look.svg, e.props.mode, e.props.message ?? e.props.word)
+        : desktopSpinnerRow(look, look.svg, e.props.mode, e.props.message ?? e.props.word, (await read($, secondsAtom)) * 1000)
     }
 
     // words claude keeps Claude Code's own word, whatever the skin says.
@@ -1159,7 +1183,7 @@ export const register: Register = on => {
       $,
       e,
       <Box flexDirection="column">
-        {usageBand(look, meters, active.prefs.compact && !e.props.isWorking && !isCompacting, compact, await read($, modelAtom))}
+        {usageBand(look, meters, active.prefs.compact && !e.props.isWorking && !isCompacting, compact, { model: await read($, modelAtom), trend: await read($, trendAtom) })}
         {theirs}
       </Box>,
     )

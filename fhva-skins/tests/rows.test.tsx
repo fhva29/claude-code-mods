@@ -910,17 +910,19 @@ const bandEngine = (on: On) => {
   }))
 }
 
+// The groups take the room Compact leaves, wrapping to a second line when it runs out.
 const spreadsEvenly = async (ui: { findAll: (q: { type: string }) => Promise<unknown> }) =>
-  ((await ui.findAll({ type: 'Box' })) as { props: { justifyContent?: string; flexGrow?: number } }[]).some(
-    el => el.props.justifyContent === 'space-evenly' && el.props.flexGrow === 1,
+  ((await ui.findAll({ type: 'Box' })) as { props: { flexWrap?: string; flexGrow?: number } }[]).some(
+    el => el.props.flexWrap === 'wrap' && el.props.flexGrow === 1,
   )
 
-test('the band draws each meter on its own, sized to its words, spread evenly beside Compact', async ($, on) => {
+test('the band draws each meter on its own, sized to its words, in groups beside Compact', async ($, on) => {
   bandEngine(on)
   await startDesktop($, on)
 
   const band = await $.ui.mount(BAND('desktop', false))
-  const meters = (await band.findAll({ type: 'Svg' })) as unknown as { props: { alt: string; width: number } }[]
+  // Hairlines between the groups carry no alt; the rings name themselves.
+  const meters = ((await band.findAll({ type: 'Svg' })) as unknown as { props: { alt: string; width: number } }[]).filter(el => el.props.alt !== '')
   expect(meters.map(el => el.props.alt)).toEqual([expect.stringContaining('context'), expect.stringContaining('5h'), expect.stringContaining('7d')])
   // Each as wide as its ring and words, not a fixed 132px slot, so the gaps between them are what spreads.
   for (const meter of meters) expect(meter.props.width).toBeLessThan(132)
@@ -941,7 +943,7 @@ test('/skin compact off leaves the band to the meters, compact on brings the but
     const band = await $.ui.mount(BAND(surface, false))
     expect(await band.find({ key: 'compact' }), `${surface}: no button`).toBeUndefined()
     expect(await band.find({ type: 'Text', text: 'Context is 85% full' }), `${surface}: no nudge`).toBeUndefined()
-    expect(await spreadsEvenly(band), `${surface}: the meters still spread`).toBe(true)
+    expect(await spreadsEvenly(band), `${surface}: the groups still fill the band`).toBe(true)
     await band.unmount()
   }
 
@@ -2116,4 +2118,17 @@ test('/skin calm off puts back the settings it changed, and keeps changes made m
   const listed = await runSkin($, 'list')
   expect(JSON.stringify(listed)).toContain('nord (current)')
   expect(JSON.stringify(listed)).toMatch(/\| calm +\| off +\|/)
+})
+
+test('the desktop spinner counts the turn in whole seconds beside its words', async ($, on) => {
+  const clock = stubEngine(on)
+  on('turn.start', ($, e) => ({ turnId: e.turnId }))
+  await startDesktop($, on)
+  await $.turn.start({ text: 'go', turnId: 't1' } as never)
+
+  const spinner = await $.ui.mount({ ...SITE, surface: 'desktop', component: 'Spinner', requestId: 'main', props: { word: 'Working', message: null, suffix: '…', mode: 'thinking' } })
+  expect(await spinner.find({ type: 'Text', text: /^· / })).toBeUndefined()
+
+  await clock.advance(12_500)
+  expect(await spinner.find({ type: 'Text', text: '· 12s' })).toBeDefined()
 })

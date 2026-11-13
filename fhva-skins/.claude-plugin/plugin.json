@@ -1,6 +1,6 @@
 {
   "name": "fhva-skins",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Desktop skin for Claude Code: tool rows with icons and timings, diff, shell, table and code cards, quiet reads, a usage band with model and effort, and a neon default theme. Fork of hellosverre/claude-skins (MIT).",
   "author": { "name": "Heitor V" },
   "license": "MIT",

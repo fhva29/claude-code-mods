@@ -74,7 +74,13 @@ export type CustomSkin = {
 
 // How full the context window is and how much of each plan limit is spent, in percent,
 // as the band above the prompt shows them, and when each limit resets (epoch ms) where known.
-export type UsageSnap = { context: number | null; limits: { label: string; percent: number; resetsAt?: number }[] }
+// `tokens` and `window` are what the context percent is measured on, where known.
+export type UsageSnap = {
+  context: number | null
+  tokens?: number
+  window?: number
+  limits: { label: string; percent: number; resetsAt?: number }[]
+}
 
 // What one turn did, shown in its footer.
 export type TurnStats = { tools: number; added: number; removed: number }
@@ -93,6 +99,7 @@ declare module 'claude-code' {
       custom: Record<string, CustomSkin>
       startedAt: number
       frame: number
+      seconds: number
       turns: Record<string, TurnStats>
       duration: StateFamily<number>
       editing: SkinSlot
@@ -117,6 +124,8 @@ declare module 'claude-code' {
       lastReply: string
       // The main loop's model and effort as the band shows them, `Opus 5.5 · high`.
       model: string
+      // Context tokens after each turn, oldest first, for the band's sparkline and delta.
+      trend: number[]
     }
   }
 }

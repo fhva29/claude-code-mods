@@ -1,6 +1,6 @@
 import type { RenderElement } from 'claude-code'
 
-import { chunksOf, DETAIL_LINES, MAX_BLOCK, unifiedDiff } from './detail'
+import { chunksOf, commandLines, DETAIL_LINES, MAX_BLOCK, unifiedDiff } from './detail'
 import type { Body, Field } from './detail'
 import { shortenPath } from './format'
 import { diffCard, terminalCard } from './rows'
@@ -50,16 +50,56 @@ export function disclosedRow(look: Look, row: RenderElement, isOpen: boolean, to
   )
 }
 
-function fieldRows(look: Look, fields: readonly Field[]) {
-  const { Text } = look.ui
-  const { palette } = look.skin
+// A value short enough to sit in the chip line under the command: `timeout 2m`.
+const CHIP_WIDTH = 48
 
-  return fields.map(field => (
-    <Text>
-      <Text color={palette.muted}>{`${field.label}  `}</Text>
-      <Text color={palette.fg}>{field.value.length > MAX_BLOCK ? `${field.value.slice(0, MAX_BLOCK)}…` : field.value}</Text>
-    </Text>
-  ))
+// The input, laid out by what each field is: the description as the heading, a shell
+// command as a highlighted block broken at its `&&` and pipes, short values as one line of
+// chips, and anything long under its own label.
+function fieldRows(look: Look, fields: readonly Field[]) {
+  const { Box, Code, Text } = look.ui
+  const { palette } = look.skin
+  const clip = (value: string) => (value.length > MAX_BLOCK ? `${value.slice(0, MAX_BLOCK)}…` : value)
+  const description = fields.find(field => field.label === 'description')
+  const command = fields.find(field => field.label === 'command')
+  const rest = fields.filter(field => field !== description && field !== command)
+  const chips = rest.filter(field => field.value.length <= CHIP_WIDTH && !field.value.includes('\n'))
+  const blocks = rest.filter(field => !chips.includes(field))
+
+  return (
+    <Box flexDirection="column" rowGap={0}>
+      {description === undefined ? '' : (
+        <Text color={palette.fg} bold>
+          {clip(description.value)}
+        </Text>
+      )}
+      {command === undefined ? '' : (
+        <Box marginTop={description === undefined ? 0 : 1} flexDirection="column">
+          <Code source={clip(commandLines(command.value))} language="bash" wrap="wrap" />
+        </Box>
+      )}
+      {chips.length === 0 ? '' : (
+        <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={description === undefined && command === undefined ? 0 : 1}>
+          {chips.map(field => (
+            <Text>
+              <Text color={palette.muted}>{`${field.label} `}</Text>
+              <Text color={palette.fg}>{field.value}</Text>
+            </Text>
+          ))}
+        </Box>
+      )}
+      {blocks.map(field => (
+        <Box flexDirection="column" marginTop={1}>
+          <Text color={palette.muted}>{field.label}</Text>
+          {field.value.startsWith('{') || field.value.startsWith('[') ? (
+            <Code source={clip(field.value)} language="json" wrap="wrap" />
+          ) : (
+            <Text color={palette.fg}>{clip(field.value)}</Text>
+          )}
+        </Box>
+      ))}
+    </Box>
+  )
 }
 
 // `show all 120 lines` under a folded answer, `show less` once it is open.

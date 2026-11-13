@@ -4,7 +4,7 @@ import type { Engine } from 'claude-code/testing'
 
 import { highlight, languageOf, outputTokens } from '../hooks/highlight'
 import type { Role } from '../hooks/highlight'
-import neon from '../hooks/themes/neon'
+import shipped from '../hooks/themes/github'
 import noir from '../hooks/themes/noir'
 import dracula from '../hooks/themes/dracula'
 
@@ -225,17 +225,17 @@ test('shell output is coloured in both cards, and plain with highlight off', asy
 
   const terminal = await $.ui.mount(result('terminal', 'o1'))
   const line = await terminal.find({ type: 'Text', text: 'src/a.ts:3 error in 12ms' })
-  expect(colorOf(line, 'error')).toBe(neon.palette.err)
+  expect(colorOf(line, 'error')).toBe(shipped.palette.err)
   await terminal.unmount()
 
   const desktop = await $.ui.mount(result('desktop', 'o2'))
   const source = ((await desktop.find({ type: 'Svg' })) as { props: { source: string } } | undefined)?.props.source ?? ''
-  expect(source).toContain(`<tspan style="fill:${neon.palette.err}">error</tspan>`)
+  expect(source).toContain(`<tspan style="fill:${shipped.palette.err}">error</tspan>`)
   await desktop.unmount()
 
   await skin($, 'highlight off')
   const plain = await $.ui.mount(result('terminal', 'o3'))
-  expect(colorOf(await plain.find({ type: 'Text', text: 'src/a.ts:3 error in 12ms' }), 'src/a.ts:3 error in 12ms')).toBe(neon.palette.fg)
+  expect(colorOf(await plain.find({ type: 'Text', text: 'src/a.ts:3 error in 12ms' }), 'src/a.ts:3 error in 12ms')).toBe(shipped.palette.fg)
   const flat = await $.ui.mount(result('desktop', 'o4'))
   expect(((await flat.find({ type: 'Svg' })) as { props: { source: string } } | undefined)?.props.source).not.toContain('<tspan')
 })

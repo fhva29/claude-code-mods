@@ -2,7 +2,7 @@ import type { CalmSnapshot, Prefs } from '../types'
 import { SKINS } from './themes'
 
 export const DEFAULT_PREFS: Prefs = {
-  skin: 'neon',
+  skin: 'github',
   icons: 'unicode',
   prompt: 'left',
   words: 'skin',

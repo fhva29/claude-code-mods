@@ -92,8 +92,8 @@ test('an opened Read shows the path and range asked for and the text with line n
   stubEngine(on)
 
   const ui = await opened($, call('r1', 'Read', { file_path: '/work/src/a.ts', offset: 41, limit: 3 }, readOutput(3, 41)))
-  expect(await ui.find({ type: 'Text', text: /path {2}src\/a\.ts/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /lines {2}41–43/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^path src\/a\.ts$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^lines 41–43$/ })).toBeDefined()
   const code = (await ui.find({ type: 'Code' })) as CodeFound
   expect(code?.props.startLine).toBe(41)
   expect(code?.props.path).toBe('/work/src/a.ts')
@@ -116,8 +116,8 @@ test('an opened Grep shows its pattern, glob and the matching lines or files', a
   stubEngine(on)
 
   const content = await opened($, call('g1', 'Grep', { pattern: 'TODO', glob: '*.ts', output_mode: 'content' }, { mode: 'content', numFiles: 1, filenames: [], content: '/work/src/a.ts:3:// TODO tidy\n/work/src/a.ts:9:// TODO test', numLines: 2 }))
-  expect(await content.find({ type: 'Text', text: /pattern {2}TODO/ })).toBeDefined()
-  expect(await content.find({ type: 'Text', text: /glob {2}\*\.ts/ })).toBeDefined()
+  expect(await content.find({ type: 'Text', text: /^pattern TODO$/ })).toBeDefined()
+  expect(await content.find({ type: 'Text', text: /^glob \*\.ts$/ })).toBeDefined()
   expect(await content.find({ type: 'Text', text: 'src/a.ts:9:// TODO test' })).toBeDefined()
   expect(await content.find({ type: 'Text', text: '2 lines' })).toBeDefined()
   await content.unmount()
@@ -131,7 +131,7 @@ test('an opened PowerShell call shows its command and output as the shell card',
   stubEngine(on)
 
   const ui = await opened($, call('p1', 'PowerShell', { command: 'Get-ChildItem src' }, { stdout: 'a.ts\nb.ts', stderr: '', interrupted: false }))
-  expect(await ui.find({ type: 'Text', text: /command {2}Get-ChildItem src/ })).toBeDefined()
+  expect(JSON.stringify(await ui.find({ type: 'Code' }))).toContain('Get-ChildItem src')
   expect(await ui.find({ type: 'Text', text: '$ Get-ChildItem src' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: 'b.ts' })).toBeDefined()
   await ui.unmount()
@@ -201,7 +201,7 @@ test('an opened image Read is Claude Code’s own drawing, and its result stays 
 
   const ui = await opened($, call('i1', 'Read', { file_path: '/work/shot.png' }, output))
   expect(await ui.find({ type: 'Text', text: 'stock row' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /path {2}shot\.png/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^path shot\.png$/ })).toBeDefined()
 
   const result = await $.ui.mount(toolResult('i1', 'Read', output))
   expect(await result.find({ type: 'Text', text: 'stock row' })).toBeDefined()

@@ -68,6 +68,62 @@ function rangeOf(fields: Fields): Field[] {
   return [{ label: 'lines', value: limit === undefined ? `${from}–end` : `${from}–${from + limit - 1}` }]
 }
 
+// A shell timeout in ms as people say it: `2m`, `90s`, `1m30s`.
+export function durationText(ms: number): string {
+  const seconds = Math.round(ms / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const rest = seconds % 60
+
+  return minutes === 0 ? `${rest}s` : rest === 0 ? `${minutes}m` : `${minutes}m${rest}s`
+}
+
+// Where a long shell command breaks into lines: before each `&&`, `||`, `|` and after each
+// `;` outside quotes, with a `\` so it still reads as one command. Short ones stay whole.
+export const COMMAND_WIDTH = 72
+
+export function commandLines(command: string): string {
+  if (command.length <= COMMAND_WIDTH || command.includes('\n')) {
+    return command
+  }
+
+  const parts: string[] = []
+  let quote: string | null = null
+  let start = 0
+
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i] ?? ''
+
+    if (quote !== null) {
+      if (char === '\\') {
+        i++
+      } else if (char === quote) {
+        quote = null
+      }
+      continue
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      continue
+    }
+
+    const pair = command.slice(i, i + 2)
+    const isBreak = (pair === '&&' || pair === '||' || (char === '|' && pair !== '||')) && command[i - 1] === ' '
+
+    if (isBreak && i > start) {
+      parts.push(command.slice(start, i).trimEnd())
+      start = i
+    } else if (char === ';' && command[i + 1] === ' ') {
+      parts.push(command.slice(start, i + 1))
+      start = i + 2
+    }
+  }
+
+  parts.push(command.slice(start).trim())
+
+  return parts.filter(part => part !== '').join(' \\\n  ')
+}
+
 // The call's input, each field as given; paths under the session's folder made relative.
 export function inputFields(tool: string, input: unknown, cwd: string): Field[] {
   const fields = fieldsOf(input)
@@ -78,7 +134,12 @@ export function inputFields(tool: string, input: unknown, cwd: string): Field[] 
     .filter(([key]) => !(isRead && (key === 'offset' || key === 'limit')) && !(isEdit && SHOWN_BY_DIFF.has(key)))
     .map(([key, value]) => ({
       label: LABELS[key] ?? key,
-      value: /path$/.test(key) && typeof value === 'string' ? shortenPath(value, cwd) : valueText(value),
+      value:
+        /path$/.test(key) && typeof value === 'string'
+          ? shortenPath(value, cwd)
+          : key === 'timeout' && typeof value === 'number'
+            ? durationText(value)
+            : valueText(value),
     }))
 
   return isRead ? [...listed, ...rangeOf(fields)] : listed

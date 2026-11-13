@@ -15,6 +15,8 @@ import { deepen, forTheme, gnomeDark, isLightTheme, macDark, resolveLight, toLig
 import { parseFolders, prefsFor, withFolder, withoutFolder } from '../hooks/folders'
 import { kindOf, summarize, toolLabel } from '../hooks/tools'
 import { modelLabel } from '../hooks/register'
+import { commandLines, durationText, inputFields } from '../hooks/detail'
+import { compactTokens, forecastOf, signedTokens, trendSvg } from '../hooks/svg-usage'
 import { SKINS } from '../hooks/themes'
 import { inlineRuns, splitBlocks } from '../hooks/blocks'
 import { errorLine, isQuiet, isReadOnlyShell, segmentsOf } from '../hooks/quiet'
@@ -773,9 +775,9 @@ test('text cut to a width keeps what fits beside the ellipsis, and at least one 
 })
 
 
-test('fhva-skins ships neon, quiet reads and no alerts, charts, math or hints', () => {
-  expect(DEFAULT_PREFS.skin).toBe('neon')
-  expect(SKINS[0]?.name).toBe('neon')
+test('fhva-skins ships github, quiet reads and no alerts, charts, math or hints', () => {
+  expect(DEFAULT_PREFS.skin).toBe('github')
+  expect(SKINS[0]?.name).toBe('github')
   expect(DEFAULT_PREFS.quiet).toBe(true)
   expect(DEFAULT_PREFS.markdown).toBe(false)
   expect(Object.keys(DEFAULT_PREFS)).not.toContain('charts')
@@ -787,4 +789,25 @@ test('the band names the model and effort the main loop runs on', () => {
   expect(modelLabel('claude-haiku-5-5', null)).toBe('Haiku 5.5')
   expect(modelLabel('some-other-model', null)).toBe('some-other-model')
   expect(modelLabel(undefined, 'high')).toBe('')
+})
+
+test('the band reads the context as weather, tokens compact, and a trend once two turns are in', () => {
+  expect(forecastOf(10).label).toBe('Clear')
+  expect(forecastOf(60).slot).toBe('warn')
+  expect(forecastOf(95).label).toBe('Compact soon')
+  expect(compactTokens(84_321)).toBe('84.3k')
+  expect(compactTokens(200_000)).toBe('200k')
+  expect(signedTokens(-3_000)).toBe('−3k')
+  expect(trendSvg([1000], tokyoNight.palette)).toBeNull()
+  expect(trendSvg([1000, 4000, 9000], tokyoNight.palette)?.source).toContain('<polyline')
+  expect(metersOf({ context: 42, tokens: 84_000, window: 200_000, limits: [] })[0]?.detail).toBe('84k/200k')
+})
+
+test('a long shell command breaks before && and pipes outside quotes, and a timeout reads as time', () => {
+  const long = 'cd /home/heitor/project && npm run build -- --mode production | tee build.log && echo "a && b | c" done'
+  expect(commandLines(long)).toBe('cd /home/heitor/project \\\n  && npm run build -- --mode production \\\n  | tee build.log \\\n  && echo "a && b | c" done')
+  expect(commandLines('ls -la && pwd')).toBe('ls -la && pwd')
+  expect(durationText(120_000)).toBe('2m')
+  expect(durationText(90_000)).toBe('1m30s')
+  expect(inputFields('Bash', { command: 'ls', timeout: 30_000 }, '/work').find(field => field.label === 'timeout')?.value).toBe('30s')
 })

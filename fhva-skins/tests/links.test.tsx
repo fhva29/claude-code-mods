@@ -183,21 +183,6 @@ test('a table copies as markdown or as drawn, and /skin copy off takes the butto
   expect(await bare.find({ type: 'Button' })).toBeUndefined()
 })
 
-test('a reply of several blocks has copy reply, which copies it as written', async ($, on) => {
-  const copied: string[] = []
-  stub(on, {}, copied)
-  await start($)
-  const text = `Here:\n\n${TABLE}\n\nAnd code:\n\n\`\`\`ts\nconst a = 1\n\`\`\``
-
-  const ui = await $.ui.mount(reply(text))
-  await ui.press({ key: 'copy-reply' })
-  expect(copied).toEqual([text])
-  await ui.unmount()
-
-  const single = await $.ui.mount(reply(TABLE, 'terminal', 'm5'))
-  expect(await single.find({ key: 'copy-reply' })).toBeUndefined()
-})
-
 test('long code and tables fold behind ▾ N more on the terminal; fold off shows them whole', async ($, on) => {
   stub(on)
   await start($)

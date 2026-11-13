@@ -19,7 +19,7 @@ import { cardWidth, settled } from './svg-kit'
 import { tableSvg } from './svg-table'
 import { terminalSvg } from './svg-terminal'
 import type { ShellOutput } from './svg-terminal'
-import { metersKey, usageLine, usageSvg } from './svg-usage'
+import { dividerSvg, forecastOf, metersKey, signedTokens, trendSvg, usageLine, usageSvg } from './svg-usage'
 import { codeRows } from './code-rows'
 import { languageOf } from './highlight'
 import type { Meter } from './svg-usage'
@@ -267,13 +267,15 @@ export function groupRow(look: Look, calls: readonly Call[]) {
 
 // The desktop's spinner row: an animated icon for what the turn is doing, beside the
 // step the desktop names (`Creating notes.md`).
-export function desktopSpinnerRow(look: Look, Svg: SvgElement, mode: SpinnerMode, text: string) {
+// `elapsedMs`, the turn so far, shows as `12s` beside the words once a second has passed.
+export function desktopSpinnerRow(look: Look, Svg: SvgElement, mode: SpinnerMode, text: string, elapsedMs = 0) {
   const { Box, Text } = look.ui
 
   return (
     <Box flexDirection="row" columnGap={1} alignItems="center">
       <Svg source={spinnerIcon(mode, spinnerColor(mode, look.skin.palette))} alt={mode} width={20} height={20} />
       <Text color={look.skin.palette.muted}>{text}</Text>
+      {elapsedMs < 1000 ? '' : <Text color={look.skin.palette.muted} dimColor>{`· ${formatDuration(elapsedMs)}`}</Text>}
     </Box>
   )
 }
@@ -650,8 +652,7 @@ function packRun(run: readonly Placed[], maxWidth: number, Svg?: SvgElement): Pl
   return [...rows, ...(row.length === 0 ? [] : [row])].map(placed => (placed.length === 1 ? placed.map(one => ({ ...one, width: maxWidth })) : placed))
 }
 
-// `whole`, the reply as Claude wrote it, adds a `copy reply` control under it.
-export function replyRows(look: Look, segments: readonly Segment[], maxWidth: number, Svg?: SvgElement, whole?: string) {
+export function replyRows(look: Look, segments: readonly Segment[], maxWidth: number, Svg?: SvgElement) {
   const { Box } = look.ui
 
   return (
@@ -669,7 +670,6 @@ export function replyRows(look: Look, segments: readonly Segment[], maxWidth: nu
           </Box>
         ),
       )}
-      {whole === undefined ? '' : copyRow(look, 'copy-reply', whole, 'copy reply')}
     </Box>
   )
 }
@@ -794,15 +794,13 @@ export const COMPACT_HOTKEY = '0'
 // One drawing or line per meter, so the band can spread them evenly across its width. Whether
 // the rings fill in is still decided once for the whole band, keyed on every meter, so they
 // fill together when any number changes and hold still together otherwise.
-function meterView(look: Look, meters: readonly Meter[]) {
+function meterView(look: Look, meters: readonly Meter[], isFirst = true) {
   const { Text } = look.ui
   const { palette } = look.skin
 
   if (look.svg !== undefined) {
     const Svg = look.svg
     const builds = meters.map(meter => ({ meter, built: usageSvg([meter], palette, true) }))
-    const entranceMs = Math.max(0, ...builds.map(({ built }) => built.entranceMs))
-    const isFirst = look.isFirstDraw === undefined || look.isFirstDraw(`usage:${metersKey(meters)}`, entranceMs)
 
     return builds.map(({ meter, built }) => (
       <Svg key={`usage-${meter.label}`} source={isFirst ? built.source : settled(built.source)} alt={built.alt} width={built.width} height={built.height} />
@@ -817,22 +815,73 @@ function meterView(look: Look, meters: readonly Meter[]) {
   ))
 }
 
-// The band above the prompt: the meters, spread evenly, and a Compact button that becomes
-// the main action, with a word on why, once the context is full enough to be worth it.
-// `/skin compact off` drops the button and the word, and the meters take the whole width.
-export function usageBand(look: Look, meters: readonly Meter[], canCompact: boolean, compact: () => void, model = '') {
+// What the band shows beside the meters: the main loop's model and effort, and the context
+// tokens after each turn, oldest first.
+export type BandExtra = { model?: string; trend?: readonly number[] }
+
+// A turn that adds more than this to the context has its delta drawn as a warning.
+const HEAVY_TURN = 20_000
+
+// The band above the prompt, as groups split by hairlines: the context's forecast and ring,
+// its trend over the last turns with the last turn's delta, the plan limits, and the model.
+// Then a Compact button that becomes the main action, with a word on why, once the context
+// is full enough to be worth it. `/skin compact off` drops the button and the word.
+export function usageBand(look: Look, meters: readonly Meter[], canCompact: boolean, compact: () => void, extra: BandExtra = {}) {
   const { Box, Text, Button } = look.ui
   const { palette } = look.skin
-  const context = meters.find(meter => meter.label === 'context')?.percent ?? 0
+  const contextMeters = meters.filter(meter => meter.label === 'context')
+  const limitMeters = meters.filter(meter => meter.label !== 'context')
+  const context = contextMeters[0]?.percent ?? 0
   const isNudge = context >= COMPACT_NUDGE
+  const forecast = contextMeters.length === 0 ? null : forecastOf(context)
+  const trend = extra.trend ?? []
+  const [before, last] = trend.slice(-2)
+  const delta = before === undefined || last === undefined ? null : last - before
+  const spark = look.svg === undefined ? null : trendSvg(trend, palette)
+  const Svg = look.svg
+  // One entrance for every meter, so the rings fill together once, though drawn in groups.
+  const isFirst = Svg === undefined || look.isFirstDraw === undefined || look.isFirstDraw(`usage:${metersKey(meters)}`, usageSvg(meters, palette, true).entranceMs)
+  const divider = (key: string) =>
+    Svg === undefined ? (
+      <Text key={key} color={palette.muted}>
+        │
+      </Text>
+    ) : (
+      <Svg key={key} source={dividerSvg(palette)} alt="" width={1} height={16} />
+    )
+
+  const groups = [
+    forecast === null ? null : (
+      <Box key="context" flexDirection="row" alignItems="center" columnGap={1}>
+        <Text color={palette[forecast.slot]} bold>{`${forecast.glyph} ${forecast.label}`}</Text>
+        {meterView(look, contextMeters, isFirst)}
+      </Box>
+    ),
+    spark === null && delta === null ? null : (
+      <Box key="trend" flexDirection="row" alignItems="center" columnGap={1}>
+        {spark === null || Svg === undefined ? '' : <Svg source={spark.source} alt="Context over the last turns" width={spark.width} height={spark.height} />}
+        {delta === null ? '' : <Text color={delta > HEAVY_TURN ? palette.warn : palette.muted}>{signedTokens(delta)}</Text>}
+      </Box>
+    ),
+    limitMeters.length === 0 ? null : (
+      <Box key="limits" flexDirection="row" alignItems="center" columnGap={2}>
+        {meterView(look, limitMeters, isFirst)}
+      </Box>
+    ),
+    extra.model === undefined || extra.model === '' ? null : (
+      <Text key="model" color={palette.fg}>
+        {extra.model.split(' · ')[0]}
+        <Text color={palette.muted}>{extra.model.includes(' · ') ? ` · ${extra.model.split(' · ')[1]}` : ''}</Text>
+      </Text>
+    ),
+  ].filter(group => group !== null)
 
   return (
     // The right edge stays clear: the band draws its own collapse mark ([-]) there.
     <Box flexDirection="row" alignItems="center" columnGap={2} paddingRight={5}>
-      <Box flexDirection="row" alignItems="center" columnGap={3} justifyContent="space-evenly" flexGrow={1}>
-        {meterView(look, meters)}
+      <Box flexDirection="row" flexWrap="wrap" alignItems="center" columnGap={2} rowGap={1} flexGrow={1}>
+        {groups.flatMap((group, i) => (i === 0 ? [group] : [divider(`divider-${i}`), group]))}
       </Box>
-      {model === '' ? '' : <Text color={palette.muted}>{model}</Text>}
       {canCompact && isNudge ? <Text color={palette.warn}>{`Context is ${context}% full`}</Text> : ''}
       {canCompact ? (
         // A digit hotkey: typed alone into an empty prompt it presses the band's button, which

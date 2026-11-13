@@ -9,4 +9,4 @@ import tokyoNight from './tokyo-night'
 import type { Skin } from '../skin'
 
 // A new built-in skin is one file beside these and one line here. The first is the default.
-export const SKINS: readonly Skin[] = [neon, tokyoNight, dracula, catppuccin, github, nord, noir, mono]
+export const SKINS: readonly Skin[] = [github, neon, tokyoNight, dracula, catppuccin, nord, noir, mono]
