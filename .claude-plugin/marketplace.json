@@ -59,6 +59,10 @@
     {
       "name": "fhva-skins",
       "source": "./fhva-skins"
+    },
+    {
+      "name": "neon-hud",
+      "source": "./neon-hud"
     }
   ]
 }

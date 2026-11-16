@@ -1,0 +1,33 @@
+{
+  "name": "neon-hud",
+  "version": "0.1.1",
+  "description": "A neon HUD band above the prompt: context fill and breakdown, plan limits with pace, tool calls per turn, session stats and next-step suggestions.",
+  "author": { "name": "Heitor V" },
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Next steps mode",
+      "description": "auto suggests after each qualifying turn; manual only when you run /next.",
+      "options": ["auto", "manual"],
+      "default": "auto"
+    },
+    "model": {
+      "type": "string",
+      "title": "Model",
+      "description": "Model alias or id that writes the suggestions.",
+      "default": "sonnet"
+    },
+    "minAnswerChars": {
+      "type": "number",
+      "title": "Shortest answer to suggest after",
+      "description": "In auto mode, skip turns whose answer is shorter than this many characters.",
+      "default": 200
+    },
+    "suggestSkills": {
+      "type": "boolean",
+      "title": "Suggest skills and slash commands",
+      "description": "Send the names (not descriptions) of this session's skills and commands, so a suggestion can be one of them.",
+      "default": true
+    }
+  }
+}
